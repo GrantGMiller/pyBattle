@@ -2,6 +2,8 @@ import tkinter
 import threading
 import time
 
+import units
+
 print('ui.py start')
 
 
@@ -21,13 +23,15 @@ class GameBoard(threading.Thread):
         print('GameBoard._createCanvas')
         self._canvas = tkinter.Canvas(self._root, width=400, height=300, background='grey')
         self._canvas.pack()
-        self._add_unit()
 
 
-    def _add_unit(self, x_center, y_center):
-        width = 10
-        x0 =
-        self._canvas.create_oval(10,20,30,40, fill='blue')
+    def add_unit(self, x_center, y_center, color):
+        newUnit = units.Unit(self, color, x_center, y_center)
+
+    def move_unit(self, unit_ID, direction):
+        #direction is either a string like "Left", "Up" etc
+        #or a float angle like 90 (90 degrees) 0 = right, 90 = up, 180 = left, 270 = down, -90 = down
+        pass
 
     def run(self):
         while True:
