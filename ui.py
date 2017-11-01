@@ -27,16 +27,37 @@ class GameBoard(threading.Thread):
 
     def add_unit(self, x_center, y_center, color):
         newUnit = units.Unit(self, color, x_center, y_center)
+        return newUnit
 
-    def move_unit(self, unit_ID, direction):
+    def move_unit(self, unit, direction):
+        print('move_unit(unit={}, direction=())'.format(unit, direction))
         #direction is either a string like "Left", "Up" etc
         #or a float angle like 90 (90 degrees) 0 = right, 90 = up, 180 = left, 270 = down, -90 = down
-        pass
+
+        direction = direction.upper()
+        dx = 0
+        dy = 0
+        if direction == 'Up':
+            dy = -1
+        elif direction == 'Down':
+            dy = 1
+        elif direction == 'Left':
+            dx = -1
+        elif direction == 'Right':
+            dx = 1
+
+        self._canvas.move(unit._item_number, dx, dy)
 
     def run(self):
+        '''
+        This while-loop will check for actions like if a new char should be added, if a char should die, move units like bullets one step forward,
+            commands from the user to move their troops.
+        :return:
+        '''
         while True:
+
             print('{} - GameBoard.run()'.format(time.asctime()))
-            time.sleep(3)
+            time.sleep(3) #using this to slow down loop for debugging, will comment out in final product
 
     #Properties *************************
 
