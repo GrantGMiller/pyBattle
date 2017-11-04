@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../controllib/.idea/controllib.iml" filepath="$PROJECT_DIR$/../controllib/.idea/controllib.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/pyBattle.iml" filepath="$PROJECT_DIR$/.idea/pyBattle.iml" />
     </modules>
   </component>

@@ -1,6 +1,8 @@
 import tkinter
 import threading
 import time
+import random
+import socket
 
 import units
 
@@ -10,23 +12,32 @@ print('ui.py start')
 class GameBoard(threading.Thread):
     def __init__(self, root):
         print('GameBoard.__init__')
-        self._player_died = None
+        self._player_died = None # Callback for when a player dies.
         self._canvas = None
         self._root = root
 
+        lblIP = tkinter.Label(root, text='Game Server: ' + socket.gethostbyname(socket.gethostname()))
+        lblIP.pack()
+
+        self._width = 400
+        self._height = 300
+
         self._createCanvas()
+
+        self._units = set()
 
         super().__init__()
         self.start()
 
     def _createCanvas(self):
         print('GameBoard._createCanvas')
-        self._canvas = tkinter.Canvas(self._root, width=400, height=300, background='grey')
+        self._canvas = tkinter.Canvas(self._root, width=self._width, height=self._height, background='grey')
         self._canvas.pack()
 
 
     def add_unit(self, x_center, y_center, color):
         newUnit = units.Unit(self, color, x_center, y_center)
+        self._units.add(newUnit)
         return newUnit
 
     def move_unit(self, unit, direction):
@@ -78,5 +89,18 @@ class GameBoard(threading.Thread):
     @new_player.setter
     def new_player(self, func):
         self._new_player = func
+
+    def GetRandomPosition(self):
+        x = random.randint(0, self._width)
+        y = random.randint(0, self._height)
+        return (x, y)
+
+    def GetNewColor(self):
+        availableColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']
+
+        for unit in self._units:
+            availableColors.remove(unit._color)
+
+        return availableColors.pop(0, None)
 
 print('end ui.py')
