@@ -2,8 +2,28 @@ import tkinter
 import ui
 from controllib.interface import EthernetServerInterfaceEx
 from controllib import event
+from controllib.system import Wait
 from collections import defaultdict
 import re
+
+WELCOME_MESSAGE = '''\
+Welcome to PyBattle.
+
+You can move your unit with one of the following commands:
+MOVE UP\\r
+MOVE DOWN\\r
+MOVE LEFT\\r
+MOVE RIGHT\\r
+
+You can shoot at other units with the following command:
+SHOOT [direction]\\r
+    where direction is the angle in degrees.
+Examples:
+SHOOT 0\\r #Shoots Right
+SHOOT 90\\r #Shoots Up
+SHOOT 180\\r #Shoot Left
+SHOT 270\\r #Shoot Down
+'''
 
 root = tkinter.Tk()
 root.title('PyBattle')
@@ -21,12 +41,15 @@ def ServerConnectionEvent(client, state):
 
     if state == 'Connected':
         # A new client has connected, add a new unit for this client
+        client.Send(WELCOME_MESSAGE)
+
         position = game.GetRandomPosition()
         newColor = game.GetNewColor()
         if newColor is None:
             client.Send('No more positions available')
             client.Disconnect()
         else:
+            client.Send('You are the {} unit.\r\n'.format(newColor))
             if units[client.IPAddress] is None:
                 newUnit = game.add_unit(position[0], position[1], newColor)
                 units[client.IPAddress] = newUnit
@@ -37,13 +60,14 @@ def ServerConnectionEvent(client, state):
 
 moveRE = re.compile('MOVE (UP|DOWN|LEFT|RIGHT)\r')
 shootRE = re.compile('SHOOT (\d{1,})\r')
+snapshotRE = re.compile('SNAPSHOT\r')
 
 @event(server, 'ReceiveData')
 def ServerRxDataEvent(client, data):
     print('ServerRxDataEvent(client={}, data={})'.format(client, data))
     buffers[client] += data.decode().upper()
     print('buffers[client]=', buffers[client])
-    for regex in [moveRE, shootRE]:
+    for regex in [moveRE, shootRE, snapshotRE]:
         for match in regex.finditer(buffers[client]):
             print('match.group(0)=', match.group(0))
             if regex is moveRE:
@@ -55,14 +79,51 @@ def ServerRxDataEvent(client, data):
                 unit = units[client.IPAddress]
                 unit.Shoot(direction)
 
+            elif regex is snapshotRE:
+                allUnits = game.GetAllUnits()
+                for unit in allUnits:
+                    msg = 'Type: {}, UnitID: {}, Color: {}, xPosition: {}, yPosition: {}\r\n'.format(
+                        unit.Type,
+                        unit._item_number,
+                        unit.color,
+                        round(unit.x, 2),
+                        round(unit.y, 2),
+                    )
+                    client.Send(msg)
+
             buffers[client] = buffers[client].replace(match.group(0), '')
 
     if len(buffers[client]) > 10000:
         buffers[client] = ''
 
 @event(game, 'UnitDied')
-def UnitDiedEvent(unit):
-    print('UnitDiedEvent(unit={})'.format(unit))
+def UnitDiedEvent(deadUnit, killedByUnit):
+    print('UnitDiedEvent(deadUnit={}, killedByUnit={})'.format(deadUnit.color, killedByUnit.color))
+    if deadUnit in units.values():
+        # Notify the user that they have died.
+        diedIP = None
+        killedByIP = None
+        for ip, u in units.items():
+            if u == deadUnit:
+                diedIP = ip
+            elif u == killedByUnit:
+                killedByIP = ip
+
+        print('diedIP=', diedIP)
+        print('killedByIP=', killedByIP)
+
+        for client in server.Clients:
+            if client.IPAddress == diedIP:
+                client.Send('You were killed by the {} unit.\r\n:-(\r\n'.format(killedByUnit.color))
+                units.pop(client.IPAddress, None)
+                #client.Disconnect()
+
+            elif client.IPAddress == killedByIP:
+                client.Send('You killed the {} unit.\r\n'.format(deadUnit.color))
+
+            else:
+                client.Send('The {} unit killed the {} unit.\r\n'.format(killedByUnit.color, deadUnit.color))
+
 
 server.StartListen()
 

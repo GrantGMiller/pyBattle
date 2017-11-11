@@ -1,5 +1,5 @@
 import math
-from extronlib.system import Wait
+from controllib.system import Wait
 import time
 
 class Unit:
@@ -19,6 +19,8 @@ class Unit:
         self._lastShootTime = 0
 
         self._put_unit_on_board(x_center, y_center)
+        self._killedBy = None
+        self._type = 'Unit'
 
 
     def _put_unit_on_board(self, x_center, y_center):
@@ -44,22 +46,45 @@ class Unit:
     @property
     def x(self):
         coords = self._game._canvas.coords(self._item_number)
-        return (coords[2] + coords[0]) / 2
+        if len(coords) is 4:
+            return (coords[2] + coords[0]) / 2
+        else:
+            return 0
 
     @property
     def y(self):
         coords = self._game._canvas.coords(self._item_number)
-        return (coords[3] + coords[1]) / 2
+        if len(coords) is 4:
+            return (coords[3] + coords[1]) / 2
+        else:
+            return 0
 
     @property
     def coords(self):
         return self._game._canvas.coords(self._item_number)
 
-    def Damage(self):
-        self.Destroy() # For now, one hit will result in death
+    def Damage(self, byUnit):
+        self.Destroy(byUnit) # For now, one hit will result in death
 
-    def Destroy(self):
+    def Destroy(self, byUnit=None):
+        self._killedBy = byUnit
         self._game.RemoveUnit(self)
+
+    @property
+    def color(self):
+        return self._color
+
+    @property
+    def isAlive(self):
+        if self._killedBy is None:
+            return True
+        else:
+            return False
+
+    @property
+    def Type(self):
+        return self._type
+
 
 class Bullet(Unit):
     def __init__(self, parentUnit, direction):
@@ -72,6 +97,8 @@ class Bullet(Unit):
 
         self._dx = math.cos(math.radians(self.direction))
         self._dy = 0 - math.sin(math.radians(self.direction))
+
+        self._type = 'Bullet'
 
     def Move(self):
         self._game._canvas.move(self._item_number, self._dx, self._dy)

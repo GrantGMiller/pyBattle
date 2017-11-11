@@ -3,9 +3,8 @@ import threading
 import time
 import random
 import socket
-import math
-
 import units
+from controllib.system import Wait
 
 print('ui.py start')
 
@@ -13,7 +12,7 @@ print('ui.py start')
 class GameBoard(threading.Thread):
     def __init__(self, root):
         print('GameBoard.__init__')
-        self._unitDied = None # Callback for when a player dies.
+        self._unitDied = None  # Callback for when a player dies.
         self._canvas = None
         self._root = root
 
@@ -35,16 +34,29 @@ class GameBoard(threading.Thread):
         super().__init__()
         self.start()
 
-        #Add a fake unit for testing shooting each other
-        randomPosition = self.GetRandomPosition()
-        newColor = self.GetNewColor()
-        self.add_unit(randomPosition[0],randomPosition[1], color=newColor)
+        for i in range(5):
+            self.AddAIUnit()
+            pass
 
     def _createCanvas(self):
         print('GameBoard._createCanvas')
         self._canvas = tkinter.Canvas(self._root, width=self._width, height=self._height, background='grey')
         self._canvas.grid(row=1, column=1)
 
+    def AddAIUnit(self):
+        # TODO make this better
+        randomPosition = self.GetRandomPosition()
+        newColor = self.GetNewColor()
+        newUnit = self.add_unit(randomPosition[0], randomPosition[1], color=newColor)
+
+        @Wait(0)
+        def loop():
+            while newUnit.isAlive:
+                newUnit.Shoot(random.randint(0, 360))
+                direction = random.choice(['Up', 'Down', 'Left', 'Right'])
+                for i in range(random.randint(1, 100)):
+                    newUnit.move(direction)
+                    time.sleep(0.01)
 
     def add_unit(self, x_center, y_center, color):
         newUnit = units.Unit(self, color, x_center, y_center)
@@ -53,8 +65,8 @@ class GameBoard(threading.Thread):
 
     def move_unit(self, unit, direction):
         print('move_unit(unit={}, direction=())'.format(unit, direction))
-        #direction is either a string like "Left", "Up" etc
-        #or a float angle like 90 (90 degrees) 0 = right, 90 = up, 180 = left, 270 = down, -90 = down
+        # direction is either a string like "Left", "Up" etc
+        # or a float angle like 90 (90 degrees) 0 = right, 90 = up, 180 = left, 270 = down, -90 = down
 
         direction = direction.upper()
         dx = 0
@@ -69,7 +81,32 @@ class GameBoard(threading.Thread):
             dx = 1
 
         self._canvas.move(unit._item_number, dx, dy)
+        self.KeepUnitInBounds(unit)
 
+    def GetAllUnits(self):
+        return list(self._units.copy()) + list(self._bullets.copy())
+
+    def KeepUnitInBounds(self, unit):
+        if unit.x - unit._width/2 < 0: #unit is too far left
+            dx = 0 - unit.x + unit._width/2 + 2
+        elif unit.x + unit._width/2 > self._width: #unit is too far right
+            dx = self._width - unit.x - unit._width/2 - 1
+        else:
+            dx = 0
+
+        if unit.y - unit._width/2  < 0: #unit is too far up
+            dy = 0 - unit.y + unit._width/2 + 2
+        elif unit.y + unit._width/2  > self._height: #unit is too far down
+            dy = self._height - unit.y - unit._width/2 - 1
+        else:
+            dy = 0
+
+        if dx is not 0 or dy is not 0:
+            self.MoveXY(unit, dx, dy)
+
+    def MoveXY(self, unit, dx, dy):
+        print('Game.MoveXY(unit={}, dx={}, dy={})'.format(unit, dx, dy))
+        self._canvas.move(unit._item_number, dx, dy)
 
     def GameOver(self):
         self._gameOver = True
@@ -82,7 +119,7 @@ class GameBoard(threading.Thread):
         '''
         while not self._gameOver:
 
-            print('{} - GameBoard.run()'.format(time.asctime()))
+            # print('{} - GameBoard.run()'.format(time.asctime()))
 
             for bullet in self._bullets.copy():
                 bullet.Move()
@@ -93,13 +130,13 @@ class GameBoard(threading.Thread):
                     for bullet in self._bullets.copy():
                         if bullet._item_number in overlaps:
                             if bullet.parent is not unit:
-                                unit.Damage()
+                                unit.Damage(bullet.parent)
 
-            time.sleep(0.01) #using this to slow down loop for debugging, will comment out in final product
+            time.sleep(0.01)  # using this to slow down loop for debugging, will comment out in final product
 
-    #Properties *************************
+    # Properties *************************
 
-    #Async event that executes when a player has been killed
+    # Async event that executes when a player has been killed
     @property
     def UnitDied(self):
         return self._unitDied
@@ -108,18 +145,18 @@ class GameBoard(threading.Thread):
     def UnitDied(self, func):
         self._unitDied = func
 
-    #Async event that executes when a new player joins the game
+    # Async event that executes when a new player joins the game
     @property
     def new_player(self):
-        return self._new_player #This function will be called when a new player is added
+        return self._new_player  # This function will be called when a new player is added
 
     @new_player.setter
     def new_player(self, func):
         self._new_player = func
 
     def GetRandomPosition(self):
-        x = random.randint(0, self._width)
-        y = random.randint(0, self._height)
+        x = random.randint(0 + self._width /4, self._width * 3/4)
+        y = random.randint(0 + self._height /4, self._height * 3/4)
         return (x, y)
 
     def GetNewColor(self):
@@ -145,8 +182,9 @@ class GameBoard(threading.Thread):
         if unit in self._units.copy():
             self._units.remove(unit)
             if self._unitDied is not None:
-                self._unitDied(unit)
+                self._unitDied(unit, unit._killedBy)
 
         self._canvas.delete(unit._item_number)
+
 
 print('end ui.py')
