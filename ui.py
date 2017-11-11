@@ -17,7 +17,10 @@ class GameBoard(threading.Thread):
         self._root = root
 
         lblIP = tkinter.Label(root, text='Game Server: ' + socket.gethostbyname(socket.gethostname()))
-        lblIP.pack()
+        lblIP.grid(row=0, column=0, columnspan=2)
+
+        self._lblPlayers = tkinter.Label(root, text='Players:')
+        self._lblPlayers.grid(row=1, column=0, sticky=tkinter.N + tkinter.W)
 
         self._width = 400
         self._height = 300
@@ -25,6 +28,7 @@ class GameBoard(threading.Thread):
         self._createCanvas()
 
         self._units = set()
+        self._gameOver = False
 
         super().__init__()
         self.start()
@@ -32,7 +36,7 @@ class GameBoard(threading.Thread):
     def _createCanvas(self):
         print('GameBoard._createCanvas')
         self._canvas = tkinter.Canvas(self._root, width=self._width, height=self._height, background='grey')
-        self._canvas.pack()
+        self._canvas.grid(row=1, column=1)
 
 
     def add_unit(self, x_center, y_center, color):
@@ -48,16 +52,20 @@ class GameBoard(threading.Thread):
         direction = direction.upper()
         dx = 0
         dy = 0
-        if direction == 'Up':
+        if direction == 'UP':
             dy = -1
-        elif direction == 'Down':
+        elif direction == 'DOWN':
             dy = 1
-        elif direction == 'Left':
+        elif direction == 'LEFT':
             dx = -1
-        elif direction == 'Right':
+        elif direction == 'RIGHT':
             dx = 1
 
         self._canvas.move(unit._item_number, dx, dy)
+
+
+    def GameOver(self):
+        self._gameOver = True
 
     def run(self):
         '''
@@ -65,7 +73,7 @@ class GameBoard(threading.Thread):
             commands from the user to move their troops.
         :return:
         '''
-        while True:
+        while not self._gameOver:
 
             print('{} - GameBoard.run()'.format(time.asctime()))
             time.sleep(3) #using this to slow down loop for debugging, will comment out in final product
@@ -101,6 +109,9 @@ class GameBoard(threading.Thread):
         for unit in self._units:
             availableColors.remove(unit._color)
 
-        return availableColors.pop(0, None)
+        if len(availableColors) > 0:
+            return availableColors.pop(0)
+        else:
+            return None
 
 print('end ui.py')

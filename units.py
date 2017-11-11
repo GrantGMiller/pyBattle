@@ -22,6 +22,9 @@ class Unit:
 
         self._item_number = self._game._canvas.create_oval(x0, y0, x1, y1, fill=self._color)
 
+    def move(self, direction):
+        self._game.move_unit(self, direction)
+
 class Bullet(Unit):
     def __init__(self):
         super().__init__()
