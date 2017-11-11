@@ -60,6 +60,10 @@ def ServerRxDataEvent(client, data):
     if len(buffers[client]) > 10000:
         buffers[client] = ''
 
+@event(game, 'UnitDied')
+def UnitDiedEvent(unit):
+    print('UnitDiedEvent(unit={})'.format(unit))
+
 server.StartListen()
 
 print('main.py root.mainloop()')

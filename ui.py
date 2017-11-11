@@ -13,7 +13,7 @@ print('ui.py start')
 class GameBoard(threading.Thread):
     def __init__(self, root):
         print('GameBoard.__init__')
-        self._player_died = None # Callback for when a player dies.
+        self._unitDied = None # Callback for when a player dies.
         self._canvas = None
         self._root = root
 
@@ -34,6 +34,11 @@ class GameBoard(threading.Thread):
 
         super().__init__()
         self.start()
+
+        #Add a fake unit for testing shooting each other
+        randomPosition = self.GetRandomPosition()
+        newColor = self.GetNewColor()
+        self.add_unit(randomPosition[0],randomPosition[1], color=newColor)
 
     def _createCanvas(self):
         print('GameBoard._createCanvas')
@@ -79,24 +84,29 @@ class GameBoard(threading.Thread):
 
             print('{} - GameBoard.run()'.format(time.asctime()))
 
-            for bullet in self._bullets:
-                dx = math.cos(math.radians(bullet.direction))
-                dy = 0 - math.sin(math.radians(bullet.direction))
-                print('dx={}, dy={}'.format(dx, dy))
-                bullet.MoveXY(dx, dy)
+            for bullet in self._bullets.copy():
+                bullet.Move()
 
-            time.sleep(0.5) #using this to slow down loop for debugging, will comment out in final product
+            for unit in self._units.copy():
+                overlaps = self._canvas.find_overlapping(*tuple(unit.coords))
+                if len(overlaps) > 1:
+                    for bullet in self._bullets.copy():
+                        if bullet._item_number in overlaps:
+                            if bullet.parent is not unit:
+                                unit.Damage()
+
+            time.sleep(0.01) #using this to slow down loop for debugging, will comment out in final product
 
     #Properties *************************
 
     #Async event that executes when a player has been killed
     @property
-    def player_died(self):
-        return self._player_died
+    def UnitDied(self):
+        return self._unitDied
 
-    @player_died.setter
-    def player_died(self, func):
-        self._player_died = func
+    @UnitDied.setter
+    def UnitDied(self, func):
+        self._unitDied = func
 
     #Async event that executes when a new player joins the game
     @property
@@ -127,7 +137,16 @@ class GameBoard(threading.Thread):
         print('Game.RegisterBullet(bullet={})'.format(bullet))
         self._bullets.add(bullet)
 
-    def RemoveBullet(self, bullet):
-        self._bullets.remove(bullet)
+    def RemoveUnit(self, unit):
+        print('RemoveUnit(unit={})'.format(unit))
+        if unit in self._bullets.copy():
+            self._bullets.remove(unit)
+
+        if unit in self._units.copy():
+            self._units.remove(unit)
+            if self._unitDied is not None:
+                self._unitDied(unit)
+
+        self._canvas.delete(unit._item_number)
 
 print('end ui.py')

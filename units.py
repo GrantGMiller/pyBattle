@@ -1,3 +1,7 @@
+import math
+from extronlib.system import Wait
+import time
+
 class Unit:
     #anything that appears on the playing field
     def __init__(self, game, color, x_center, y_center, width=10):
@@ -6,13 +10,16 @@ class Unit:
         self._color = color
         self._width = width
         self._speed = 10
-        self._can_shoot = False
         self._defense_power = 10 #None = indestructable
         self._attack_power = 10
         self._shoot_range = 10
         self._item_number = None
 
+        self._maxShootRate = 1 # bullets per second
+        self._lastShootTime = 0
+
         self._put_unit_on_board(x_center, y_center)
+
 
     def _put_unit_on_board(self, x_center, y_center):
         x0 = x_center - self._width/2
@@ -26,8 +33,13 @@ class Unit:
         self._game.move_unit(self, direction)
 
     def Shoot(self, direction):
-        print('Unit.Shoot(direction={})'.format(direction))
-        bullet = Bullet(self, direction)
+        nowTime = time.time()
+
+        if nowTime - self._lastShootTime > 1/self._maxShootRate:
+            print('Unit.Shoot(direction={})'.format(direction))
+            bullet = Bullet(self, direction)
+            self._lastShootTime = nowTime
+
 
     @property
     def x(self):
@@ -39,6 +51,16 @@ class Unit:
         coords = self._game._canvas.coords(self._item_number)
         return (coords[3] + coords[1]) / 2
 
+    @property
+    def coords(self):
+        return self._game._canvas.coords(self._item_number)
+
+    def Damage(self):
+        self.Destroy() # For now, one hit will result in death
+
+    def Destroy(self):
+        self._game.RemoveUnit(self)
+
 class Bullet(Unit):
     def __init__(self, parentUnit, direction):
         direction = float(direction)
@@ -46,24 +68,26 @@ class Bullet(Unit):
         super().__init__(game=parentUnit._game, color='Black', x_center=parentUnit.x, y_center=parentUnit.y, width=5)
         self._direction = direction
         self._game.RegisterBullet(self)
+        self._parentUnit = parentUnit
 
-    def MoveXY(self, dx, dy):
-        print('Bullet.moveXY(dx={}, dy={})'.format(dx, dy))
-        self._game._canvas.move(self._item_number, dx, dy)
+        self._dx = math.cos(math.radians(self.direction))
+        self._dy = 0 - math.sin(math.radians(self.direction))
+
+    def Move(self):
+        self._game._canvas.move(self._item_number, self._dx, self._dy)
 
         if not (0-self._width)/2 <= self.x <= self._game._width:
             self.Destroy()
         elif not (0-self._width)/2 <= self.y <= self._game._height:
             self.Destroy()
 
-    def Destroy(self):
-        print('Bullet.Destroy()')
-        self._game.RemoveBullet(self)
-
     @property
     def direction(self):
-        return self._direction
+        return self._direction #Returned in degrees 0 = right, 90 = up, 180 = left, 270 = down
 
+    @property
+    def parent(self):
+        return self._parentUnit
 
 class Player(Unit):
     pass
