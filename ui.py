@@ -3,6 +3,7 @@ import threading
 import time
 import random
 import socket
+import math
 
 import units
 
@@ -28,6 +29,7 @@ class GameBoard(threading.Thread):
         self._createCanvas()
 
         self._units = set()
+        self._bullets = set()
         self._gameOver = False
 
         super().__init__()
@@ -76,7 +78,14 @@ class GameBoard(threading.Thread):
         while not self._gameOver:
 
             print('{} - GameBoard.run()'.format(time.asctime()))
-            time.sleep(3) #using this to slow down loop for debugging, will comment out in final product
+
+            for bullet in self._bullets:
+                dx = math.cos(math.radians(bullet.direction))
+                dy = 0 - math.sin(math.radians(bullet.direction))
+                print('dx={}, dy={}'.format(dx, dy))
+                bullet.MoveXY(dx, dy)
+
+            time.sleep(0.5) #using this to slow down loop for debugging, will comment out in final product
 
     #Properties *************************
 
@@ -92,7 +101,7 @@ class GameBoard(threading.Thread):
     #Async event that executes when a new player joins the game
     @property
     def new_player(self):
-        return self._new_player
+        return self._new_player #This function will be called when a new player is added
 
     @new_player.setter
     def new_player(self, func):
@@ -113,5 +122,12 @@ class GameBoard(threading.Thread):
             return availableColors.pop(0)
         else:
             return None
+
+    def RegisterBullet(self, bullet):
+        print('Game.RegisterBullet(bullet={})'.format(bullet))
+        self._bullets.add(bullet)
+
+    def RemoveBullet(self, bullet):
+        self._bullets.remove(bullet)
 
 print('end ui.py')

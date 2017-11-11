@@ -36,19 +36,26 @@ def ServerConnectionEvent(client, state):
 
 
 moveRE = re.compile('MOVE (UP|DOWN|LEFT|RIGHT)\r')
+shootRE = re.compile('SHOOT (\d{1,})\r')
 
 @event(server, 'ReceiveData')
 def ServerRxDataEvent(client, data):
     print('ServerRxDataEvent(client={}, data={})'.format(client, data))
     buffers[client] += data.decode().upper()
     print('buffers[client]=', buffers[client])
-    for match in moveRE.finditer(buffers[client]):
-        print('match.group(0)=', match.group(0))
-        direction = match.group(1)
-        unit = units[client.IPAddress]
-        unit.move(direction)
+    for regex in [moveRE, shootRE]:
+        for match in regex.finditer(buffers[client]):
+            print('match.group(0)=', match.group(0))
+            if regex is moveRE:
+                direction = match.group(1)
+                unit = units[client.IPAddress]
+                unit.move(direction)
+            elif regex is shootRE:
+                direction = match.group(1)
+                unit = units[client.IPAddress]
+                unit.Shoot(direction)
 
-        buffers[client] = buffers[client].replace(match.group(0), '')
+            buffers[client] = buffers[client].replace(match.group(0), '')
 
     if len(buffers[client]) > 10000:
         buffers[client] = ''
