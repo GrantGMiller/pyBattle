@@ -16,11 +16,14 @@ class GameBoard(threading.Thread):
         self._canvas = None
         self._root = root
 
-        lblIP = tkinter.Label(root, text='Game Server: ' + socket.gethostbyname(socket.gethostname()))
+        lblIP = tkinter.Label(root, text='Game Server:  {} :{}'.format(
+            socket.gethostbyname(socket.gethostname()),
+            '3888',
+        ))
         lblIP.grid(row=0, column=0, columnspan=2)
 
         self._lblPlayers = tkinter.Label(root, text='Players:')
-        self._lblPlayers.grid(row=1, column=0, sticky=tkinter.N + tkinter.W)
+        #self._lblPlayers.grid(row=1, column=0, sticky=tkinter.N + tkinter.W)
 
         self._width = 400
         self._height = 300
@@ -35,7 +38,7 @@ class GameBoard(threading.Thread):
         self.start()
 
         for i in range(5):
-            self.AddAIUnit()
+            #self.AddAIUnit()
             pass
 
     def _createCanvas(self):
@@ -160,7 +163,7 @@ class GameBoard(threading.Thread):
         return (x, y)
 
     def GetNewColor(self):
-        availableColors = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple']
+        availableColors = ['Red', 'Orange', 'Yellow', 'Green', 'Cyan', 'Blue', 'Purple']
 
         for unit in self._units:
             availableColors.remove(unit._color)

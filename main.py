@@ -2,9 +2,9 @@ import tkinter
 import ui
 from controllib.interface import EthernetServerInterfaceEx
 from controllib import event
-from controllib.system import Wait
 from collections import defaultdict
 import re
+import hashlib
 
 WELCOME_MESSAGE = '''\
 Welcome to PyBattle.
@@ -23,6 +23,10 @@ SHOOT 0\\r #Shoots Right
 SHOOT 90\\r #Shoots Up
 SHOOT 180\\r #Shoot Left
 SHOT 270\\r #Shoot Down
+
+You can request a snapshot of the game with this command:
+SNAPSHOT\\r
+\r\n\r\n
 '''
 
 root = tkinter.Tk()
@@ -32,9 +36,13 @@ game = ui.GameBoard(root)
 
 server = EthernetServerInterfaceEx(3888)
 
-
 buffers = defaultdict(str)
-units = defaultdict(lambda:None) #{str(IPAddress): unit()}
+username = defaultdict(str)
+password = defaultdict(str)
+
+units = defaultdict(lambda: None)  # {str(IPAddress): unit()}
+
+
 @event(server, ['Connected', 'Disconnected'])
 def ServerConnectionEvent(client, state):
     print('ServerConnectionEvent(client={}, state={})'.format(client, state))
@@ -61,13 +69,16 @@ def ServerConnectionEvent(client, state):
 moveRE = re.compile('MOVE (UP|DOWN|LEFT|RIGHT)\r')
 shootRE = re.compile('SHOOT (\d{1,})\r')
 snapshotRE = re.compile('SNAPSHOT\r')
+userRE = re.compile('USER:(.+?)\r')
+passRE = re.compile('PASS:(.+?)\r')
+
 
 @event(server, 'ReceiveData')
 def ServerRxDataEvent(client, data):
     print('ServerRxDataEvent(client={}, data={})'.format(client, data))
     buffers[client] += data.decode().upper()
     print('buffers[client]=', buffers[client])
-    for regex in [moveRE, shootRE, snapshotRE]:
+    for regex in [moveRE, shootRE, snapshotRE, userRE, passRE]:
         for match in regex.finditer(buffers[client]):
             print('match.group(0)=', match.group(0))
             if regex is moveRE:
@@ -91,10 +102,29 @@ def ServerRxDataEvent(client, data):
                     )
                     client.Send(msg)
 
+            elif regex is userRE:
+                username[client] = match.group(1)
+                VerifyUser(client)
+
+            elif regex is passRE:
+                password[client] = match.group(1)
+                VerifyUser(client)
+
             buffers[client] = buffers[client].replace(match.group(0), '')
 
     if len(buffers[client]) > 10000:
         buffers[client] = ''
+
+def VerifyUser(client):
+    pw = password[client]
+    if pw is not '':
+        print('pw=', pw)
+        hashed = HashIt(pw)
+        print('hash=', hashed)
+
+def HashIt(s):
+    print('HashIt(s={})'.format(s))
+    return hashlib.sha512(s.encode()).hexdigest()
 
 @event(game, 'UnitDied')
 def UnitDiedEvent(deadUnit, killedByUnit):
@@ -116,13 +146,14 @@ def UnitDiedEvent(deadUnit, killedByUnit):
             if client.IPAddress == diedIP:
                 client.Send('You were killed by the {} unit.\r\n:-(\r\n'.format(killedByUnit.color))
                 units.pop(client.IPAddress, None)
-                #client.Disconnect()
+                # client.Disconnect()
 
             elif client.IPAddress == killedByIP:
                 client.Send('You killed the {} unit.\r\n'.format(deadUnit.color))
 
             else:
                 client.Send('The {} unit killed the {} unit.\r\n'.format(killedByUnit.color, deadUnit.color))
+
 
 
 server.StartListen()

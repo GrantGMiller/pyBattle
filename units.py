@@ -15,7 +15,7 @@ class Unit:
         self._shoot_range = 10
         self._item_number = None
 
-        self._maxShootRate = 1 # bullets per second
+        self._maxShootRate = 0.5 # bullets per second
         self._lastShootTime = 0
 
         self._put_unit_on_board(x_center, y_center)
