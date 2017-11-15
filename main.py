@@ -34,6 +34,9 @@ root.title('PyBattle')
 
 game = ui.GameBoard(root)
 
+lblPlayers = tkinter.Label(root, text='Players:\r\n(Waiting for players...)')
+lblPlayers.grid(row=1, column=0, sticky=tkinter.N + tkinter.W)
+
 server = EthernetServerInterfaceEx(3888)
 
 buffers = defaultdict(str)
@@ -64,6 +67,11 @@ def ServerConnectionEvent(client, state):
 
     elif state == 'Disconnected':
         buffers.pop(client, None)
+
+    msg = ''
+    for client in server.Clients:
+        msg += '{}: Color={}, IP={}\r\n'.format('username', 'color', client.IPAddress)
+    lblPlayers.config(text=msg)
 
 
 moveRE = re.compile('MOVE (UP|DOWN|LEFT|RIGHT)\r')

@@ -22,8 +22,6 @@ class GameBoard(threading.Thread):
         ))
         lblIP.grid(row=0, column=0, columnspan=2)
 
-        self._lblPlayers = tkinter.Label(root, text='Players:')
-        #self._lblPlayers.grid(row=1, column=0, sticky=tkinter.N + tkinter.W)
 
         self._width = 400
         self._height = 300
