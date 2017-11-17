@@ -32,11 +32,13 @@ class GameBoard(threading.Thread):
         self._bullets = set()
         self._gameOver = False
 
+        self._NewPlayer = None #callback for when a new player (human or AI) is added to the game
+
         super().__init__()
         self.start()
 
-        for i in range(5):
-            #self.AddAIUnit()
+        for i in range(1):
+            self.AddAIUnit()
             pass
 
     def _createCanvas(self):
@@ -48,7 +50,7 @@ class GameBoard(threading.Thread):
         # TODO make this better
         randomPosition = self.GetRandomPosition()
         newColor = self.GetNewColor()
-        newUnit = self.add_unit(randomPosition[0], randomPosition[1], color=newColor)
+        newUnit = self.AddUnit(randomPosition[0], randomPosition[1], color=newColor)
 
         @Wait(0)
         def loop():
@@ -59,13 +61,17 @@ class GameBoard(threading.Thread):
                     newUnit.move(direction)
                     time.sleep(0.01)
 
-    def add_unit(self, x_center, y_center, color):
+    def AddUnit(self, x_center, y_center, color):
         newUnit = units.Unit(self, color, x_center, y_center)
         self._units.add(newUnit)
+
+        if self.NewPlayer is not None:
+            self.NewPlayer(self, newUnit)
+
         return newUnit
 
-    def move_unit(self, unit, direction):
-        print('move_unit(unit={}, direction=())'.format(unit, direction))
+    def MoveUnit(self, unit, direction):
+        #print('move_unit(unit={}, direction=())'.format(unit, direction))
         # direction is either a string like "Left", "Up" etc
         # or a float angle like 90 (90 degrees) 0 = right, 90 = up, 180 = left, 270 = down, -90 = down
 
@@ -148,12 +154,12 @@ class GameBoard(threading.Thread):
 
     # Async event that executes when a new player joins the game
     @property
-    def new_player(self):
-        return self._new_player  # This function will be called when a new player is added
+    def NewPlayer(self):
+        return self._NewPlayer  # This function will be called when a new player is added
 
-    @new_player.setter
-    def new_player(self, func):
-        self._new_player = func
+    @NewPlayer.setter
+    def NewPlayer(self, func):
+        self._NewPlayer = func
 
     def GetRandomPosition(self):
         x = random.randint(0 + self._width /4, self._width * 3/4)

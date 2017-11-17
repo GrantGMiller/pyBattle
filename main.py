@@ -29,6 +29,9 @@ SNAPSHOT\\r
 \r\n\r\n
 '''
 
+PLAYER_LABEL_PREFIX = '''\
+Players:\r\n\r\n'''
+
 root = tkinter.Tk()
 root.title('PyBattle')
 
@@ -62,13 +65,13 @@ def ServerConnectionEvent(client, state):
         else:
             client.Send('You are the {} unit.\r\n'.format(newColor))
             if units[client.IPAddress] is None:
-                newUnit = game.add_unit(position[0], position[1], newColor)
+                newUnit = game.AddUnit(position[0], position[1], newColor)
                 units[client.IPAddress] = newUnit
 
     elif state == 'Disconnected':
         buffers.pop(client, None)
 
-    msg = ''
+    msg = PLAYER_LABEL_PREFIX
     for client in server.Clients:
         msg += '{}: Color={}, IP={}\r\n'.format('username', 'color', client.IPAddress)
     lblPlayers.config(text=msg)
@@ -162,7 +165,9 @@ def UnitDiedEvent(deadUnit, killedByUnit):
             else:
                 client.Send('The {} unit killed the {} unit.\r\n'.format(killedByUnit.color, deadUnit.color))
 
-
+@event(game, 'NewPlayer')
+def GameNewPlayerEvent(game, unit):
+    print('GameNewPlayerEvent(game={}, unit={})'.format(game, unit))
 
 server.StartListen()
 

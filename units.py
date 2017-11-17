@@ -15,7 +15,7 @@ class Unit:
         self._shoot_range = 10
         self._item_number = None
 
-        self._maxShootRate = 0.5 # bullets per second
+        self._maxShootRate = 1 # bullets per second
         self._lastShootTime = 0
 
         self._put_unit_on_board(x_center, y_center)
@@ -32,7 +32,7 @@ class Unit:
         self._item_number = self._game._canvas.create_oval(x0, y0, x1, y1, fill=self._color)
 
     def move(self, direction):
-        self._game.move_unit(self, direction)
+        self._game.MoveUnit(self, direction)
 
     def Shoot(self, direction):
         nowTime = time.time()
@@ -90,7 +90,7 @@ class Bullet(Unit):
     def __init__(self, parentUnit, direction):
         direction = float(direction)
         print('Bullet.__init__(parentUnit={}, direction={})'.format(parentUnit, direction))
-        super().__init__(game=parentUnit._game, color='Black', x_center=parentUnit.x, y_center=parentUnit.y, width=5)
+        super().__init__(game=parentUnit._game, color=parentUnit.color, x_center=parentUnit.x, y_center=parentUnit.y, width=5)
         self._direction = direction
         self._game.RegisterBullet(self)
         self._parentUnit = parentUnit
